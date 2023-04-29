@@ -31,10 +31,12 @@
   },
   "homepage": "https://github.com/DavideViolante/investing-com-api#readme",
   "jest": {
-    "coveragePathIgnorePatterns": ["functions.js"]
+    "coveragePathIgnorePatterns": [
+      "functions.js"
+    ]
   },
   "dependencies": {
-    "puppeteer": "^19.3.0"
+    "chrome-aws-lambda": "^10.1.0"
   },
   "devDependencies": {
     "eslint": "^8.28.0",

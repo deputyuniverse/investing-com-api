@@ -1,9 +1,20 @@
-const puppeteer = require('puppeteer');
-const { mapping } = require('./mapping');
-const { getJsonContent, mapResponse } = require('./functions');
+const chromium = require("chrome-aws-lambda");
+const puppeteer = require("puppeteer-core");
+const { mapping } = require("./mapping");
+const { getJsonContent, mapResponse } = require("./functions");
 
-const validPeriod = ['P1D', 'P1W', 'P1M', 'P3M', 'P6M', 'P1Y', 'P5Y', 'MAX'];
-const validInterval = ['PT1M', 'PT5M', 'PT15M', 'PT30M', 'PT1H', 'PT5H', 'P1D', 'P1W', 'P1M'];
+const validPeriod = ["P1D", "P1W", "P1M", "P3M", "P6M", "P1Y", "P5Y", "MAX"];
+const validInterval = [
+  "PT1M",
+  "PT5M",
+  "PT15M",
+  "PT30M",
+  "PT1H",
+  "PT5H",
+  "P1D",
+  "P1W",
+  "P1M",
+];
 const validPointscount = [60, 70, 120];
 
 /**
@@ -15,16 +26,20 @@ const validPointscount = [60, 70, 120];
  */
 function checkParams(input, period, interval, pointscount) {
   if (!input) {
-    throw Error('Parameter input is required');
+    throw Error("Parameter input is required");
   }
   if (!validPeriod.includes(period)) {
-    throw Error('Invalid period parameter. Valid values are: P1D, P1W, P1M, P3M, P6M, P1Y, P5Y, MAX');
+    throw Error(
+      "Invalid period parameter. Valid values are: P1D, P1W, P1M, P3M, P6M, P1Y, P5Y, MAX"
+    );
   }
   if (!validInterval.includes(interval)) {
-    throw Error('Invalid interval parameter. Valid values are: PT1M, PT5M, PT15M, PT30M, PT1H, PT5H, P1D, P1W, P1M');
+    throw Error(
+      "Invalid interval parameter. Valid values are: PT1M, PT5M, PT15M, PT30M, PT1H, PT5H, P1D, P1W, P1M"
+    );
   }
   if (!validPointscount.includes(pointscount)) {
-    throw Error('Invalid pointscount parameter. Valid values are: 60, 70, 120');
+    throw Error("Invalid pointscount parameter. Valid values are: 60, 70, 120");
   }
 }
 
@@ -39,13 +54,29 @@ function checkParams(input, period, interval, pointscount) {
  * @param {*} pptrLaunchOptions Puppeteer launch options, see https://pptr.dev/api/puppeteer.launchoptions
  * @return {Array} An array of objects with date (timestamp) and value (number) properties
  */
-async function callInvesting(pairId, period, interval, pointscount, pptrLaunchOptions) {
-  const browser = await puppeteer.launch(pptrLaunchOptions);
+async function callInvesting(
+  pairId,
+  period,
+  interval,
+  pointscount,
+  pptrLaunchOptions
+) {
+  const pptrLaunchOptionsChromiumOverride = {
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath,
+    headless: chromium.headless,
+  };
+  const browser = await puppeteer.launch(pptrLaunchOptionsChromiumOverride);
   const page = await browser.newPage();
   // eslint-disable-next-line max-len
-  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36');
+  await page.setUserAgent(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"
+  );
   // eslint-disable-next-line max-len
-  await page.goto(`https://api.investing.com/api/financialdata/${pairId}/historical/chart?period=${period}&interval=${interval}&pointscount=${pointscount}`);
+  await page.goto(
+    `https://api.investing.com/api/financialdata/${pairId}/historical/chart?period=${period}&interval=${interval}&pointscount=${pointscount}`
+  );
   const jsonContent = await getJsonContent(page);
   await browser.close();
   return jsonContent;
@@ -63,20 +94,32 @@ async function callInvesting(pairId, period, interval, pointscount, pptrLaunchOp
  * @param {*} [pptrLaunchOptions] Puppeteer launch options, see https://pptr.dev/api/puppeteer.launchoptions
  * @return {Array} An array of objects with date (timestamp) and value (number) properties
  */
-async function investing(input, period = 'P1M', interval = 'P1D', pointscount = 120, pptrLaunchOptions) {
+async function investing(
+  input,
+  period = "P1M",
+  interval = "P1D",
+  pointscount = 120,
+  pptrLaunchOptions
+) {
   try {
     checkParams(input, period, interval, pointscount);
     const pairId = mapping[input]?.pairId || input;
-    const { data } = await callInvesting(pairId, period, interval, pointscount, pptrLaunchOptions);
+    const { data } = await callInvesting(
+      pairId,
+      period,
+      interval,
+      pointscount,
+      pptrLaunchOptions
+    );
     const results = mapResponse(data);
     if (!results.length) {
-      throw Error('Wrong input or pairId');
+      throw Error("Wrong input or pairId");
     }
     return results;
   } catch (err) {
     console.error(err.message);
-    if (err.response?.data?.['@errors']?.[0]) {
-      console.error(err.response.data['@errors'][0]);
+    if (err.response?.data?.["@errors"]?.[0]) {
+      console.error(err.response.data["@errors"][0]);
     }
   }
 }
