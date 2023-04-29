@@ -1,5 +1,4 @@
-const chromium = require("chrome-aws-lambda");
-const puppeteer = require("puppeteer-core");
+const chrome = require("chrome-aws-lambda");
 const { mapping } = require("./mapping");
 const { getJsonContent, mapResponse } = require("./functions");
 
@@ -62,11 +61,12 @@ async function callInvesting(
   pptrLaunchOptions
 ) {
   const pptrLaunchOptionsChromiumOverride = {
-    args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
-    executablePath: await chromium.executablePath,
-    headless: chromium.headless,
+    args: chrome.args,
+    defaultViewport: chrome.defaultViewport,
+    executablePath: await chrome.executablePath,
+    headless: chrome.headless,
   };
+  const puppeteer = chrome.puppeteer;
   const browser = await puppeteer.launch(pptrLaunchOptionsChromiumOverride);
   const page = await browser.newPage();
   // eslint-disable-next-line max-len
